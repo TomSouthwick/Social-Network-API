@@ -21,7 +21,7 @@ app.use(express.json());
 //   }
 // });
 
-// Finds all documents
+// Finds all Users
 app.get("/api/users", (req, res) => {
   // Using model in route to find all documents that are instances of that model
   User.find({}, (err, result) => {
@@ -30,6 +30,59 @@ app.get("/api/users", (req, res) => {
     } else {
       console.log("Uh Oh, something went wrong");
       res.status(500).json({ message: "something went wrong" });
+    }
+  });
+});
+
+// Find a specific User and populate the friends and thoughts
+app.get("/api/users/:id", (req, res) => {
+  // Using model in route to find all documents that are instances of that model
+  User.findOne({ _id: req.params.id })
+    .populate("friends")
+    .populate("thoughts")
+    .exec((err, result) => {
+      if (result) {
+        res.status(200).json(result);
+      } else {
+        console.log("Uh Oh, something went wrong");
+        res.status(500).json({ message: "Could not find user with that id" });
+      }
+    });
+});
+
+// Add a new user
+app.post("/api/users", (req, res) => {
+  User.create(req.body, function (err, result) {
+    if (err) {
+      res.status(500).json({ err: err.message });
+    } else {
+      res.status(200).json(result);
+    }
+  });
+});
+
+// Update a user
+app.put("/api/users/:id", (req, res) => {
+  // res.status(200).json(req.body);
+  User.findOneAndUpdate({ _id: req.params.id }, req.body).exec(function (
+    err,
+    result
+  ) {
+    if (err) {
+      res.status(500).json({ err: err.message });
+    } else {
+      res.status(200).json({ result, message: "Successfully updated" });
+    }
+  });
+});
+
+app.delete("/api/users/:id", (req, res) => {
+  // res.status(200).json(req.body);
+  User.findOneAndDelete({ _id: req.params.id }).exec(function (err, result) {
+    if (err) {
+      res.status(500).json({ err: err.message });
+    } else {
+      res.status(200).json({ result, message: "Successfully deleted" });
     }
   });
 });

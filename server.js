@@ -99,6 +99,151 @@ app.get("/api/thoughts", (req, res) => {
   });
 });
 
+app.get("/api/thoughts/:id", (req, res) => {
+  // Using model in route to find all documents that are instances of that model
+  Thought.findOne({ _id: req.params.id }).exec((err, result) => {
+    if (result) {
+      res.status(200).json(result);
+    } else {
+      console.log("Uh Oh, something went wrong");
+      res.status(500).json({ message: "Could not find thought with that id" });
+    }
+  });
+});
+
+app.post("/api/thoughts", (req, res) => {
+  Thought.create(req.body, function (err, result) {
+    if (err) {
+      res.status(500).json({ err: err.message });
+    } else {
+      User.findOneAndUpdate(
+        { _id: req.body.userId },
+        {
+          $push: { thoughts: result._id },
+        }
+      )
+        .then((uh) => {
+          res.status(200).json({ message: "Thought added successfully" });
+        })
+        .catch((err) => {
+          res.status(500).json({ err: err.message });
+        });
+    }
+  });
+});
+
+app.put("/api/thoughts/:id", (req, res) => {
+  // res.status(200).json(req.body);
+  Thought.findOneAndUpdate({ _id: req.params.id }, req.body).exec(function (
+    err,
+    result
+  ) {
+    if (err) {
+      res.status(500).json({ err: err.message });
+    } else {
+      res.status(200).json({ message: "Thought successfully updated" });
+    }
+  });
+});
+
+app.delete("/api/thoughts/:id", async (req, res) => {
+  // res.status(200).json(req.body);
+  // let username = "";
+  // const thought = await Thought.findOne({ _id: req.params.id });
+  // console.log(thought);
+
+  Thought.findOneAndDelete({ _id: req.params.id }).exec(function (err, result) {
+    if (err) {
+      res.status(500).json({ err: err.message });
+    } else {
+      console.log(result);
+
+      User.findOneAndUpdate(
+        { username: result.username },
+        {
+          $pull: { thoughts: result._id },
+        }
+      )
+        .then((uh) => {
+          res.status(200).json({ message: "Thought deleted successfully" });
+        })
+        .catch((err) => {
+          res.status(500).json({ err: err.message });
+        });
+      // res.status(200).json({ result, message: "Successfully deleted" });
+    }
+  });
+});
+
+app.post("/api/thoughts/:thoughtId/reactions", (req, res) => {
+  if (!req.body.reactionBody) {
+    return res.status(400).json({ message: "Reaction body parameter missing" });
+  }
+  if (!req.body.username) {
+    return res.status(400).json({ message: "username parameter missing" });
+  }
+
+  Thought.findOneAndUpdate(
+    { _id: req.params.thoughtId },
+    {
+      $addToSet: { reactions: req.body },
+    },
+    (err, result) => {
+      if (err) {
+        res.status(500).json({ err: err.message });
+      } else {
+        res.status(200).json({ message: "reaction added successfully" });
+      }
+    }
+  );
+});
+
+app.delete("/api/thoughts/:thoughtId/reactions", async (req, res) => {
+  if (!req.body.reactionId) {
+    return res.status(400).json({ err: "No reaction Id" });
+  }
+
+  const thought = await Thought.findOne({ _id: req.params.thoughtId });
+  if (!thought.reactions.includes(req.body.reactionId)) {
+    return res.status(400).json({ err: "Reaction id not present in thought" });
+  }
+
+  Thought.findOneAndUpdate(
+    { _id: req.params.thoughtId },
+    {
+      $pull: { reactions: { _id: req.body.reactionId } },
+    },
+    (err, result) => {
+      if (err) {
+        res.status(500).json({ err: err.message });
+      } else {
+        if (result === null) {
+        }
+        res.status(200).json({ message: "reaction deleted successfully" });
+      }
+    }
+  );
+});
+
+// Reaction.create(req.body, function (err, result) {
+//   if (err) {
+//     res.status(500).json({ err: err.message });
+//   } else {
+//     Thought.findOneAndUpdate(
+//       { _id: req.query.thoughtId },
+//       {
+//         $push: { reactions: result._id },
+//       }
+//     )
+//       .then((uh) => {
+//         res.status(200).json({ message: "reaction added successfully" });
+//       })
+//       .catch((err) => {
+//         res.status(500).json({ err: err.message });
+//       });
+//   }
+// });
+
 // Find first document with name equal to "Kids"
 // app.get('/find-kids-genre', (req, res) => {
 //   Genre.findOne({ name: 'Kids' }, (err, result) => {

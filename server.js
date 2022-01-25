@@ -164,7 +164,7 @@ app.delete("/api/thoughts/:id", async (req, res) => {
           $pull: { thoughts: result._id },
         }
       )
-        .then((uh) => {
+        .then(() => {
           res.status(200).json({ message: "Thought deleted successfully" });
         })
         .catch((err) => {
@@ -204,7 +204,11 @@ app.delete("/api/thoughts/:thoughtId/reactions", async (req, res) => {
   }
 
   const thought = await Thought.findOne({ _id: req.params.thoughtId });
-  if (!thought.reactions.includes(req.body.reactionId)) {
+
+  if (
+    thought.reactions.filter((reaction) => reaction.id === req.body.reactionId)
+      .length === 0
+  ) {
     return res.status(400).json({ err: "Reaction id not present in thought" });
   }
 
